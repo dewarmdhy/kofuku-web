@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Kofuku Wellness",
+  "description": "A comprehensive preventive and intensive health platform for employees and families, focusing on physical, mental, and social well-being.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

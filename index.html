@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kofuku Wellness - Say Yes to Health</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: '#3B9AD9', // Exact Sky Blue from Kofuku Logo
+                dark: '#2A7BB3',
+                light: '#EBF5FB',
+              },
+              secondary: '#D4A843',
+              background: '#F8F9FA',
+              surface: '#F5F0E8',
+              charcoal: '#2D2D2D',
+              mediumGrey: '#6B7280',
+              success: '#22C55E',
+              warning: '#F59E0B',
+              error: '#EF4444',
+            },
+            fontFamily: {
+              sans: ['Nunito', 'sans-serif'],
+              heading: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            },
+            borderRadius: {
+              'xl': '12px',
+              '2xl': '16px',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Nunito', sans-serif;
+        background-color: #F8F9FA;
+        color: #2D2D2D;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #3B9AD9;
+        border-radius: 10px;
+      }
+      @keyframes pulse-gold {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 168, 67, 0.7); }
+        50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(212, 168, 67, 0); }
+      }
+      .animate-pulse-gold {
+        animation: pulse-gold 2s infinite;
+      }
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.5); opacity: 1; }
+      }
+      .animate-breathe {
+        animation: breathe 14s infinite ease-in-out;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
