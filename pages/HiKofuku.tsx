@@ -20,7 +20,7 @@ const HiKofuku: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       id: '1', 
-      text: 'Halo! Aku Kofuku, konsultan wellness personalmu. Tekan tombol mikrofon atau ketik pesanmu untuk mulai konsultasi 😊', 
+      text: 'Halo! Aku Kofuku, konsultan wellness personalmu. Apa yang bisa kubantu hari ini?', 
       sender: 'kofuku', 
       timestamp: new Date() 
     }
@@ -86,6 +86,7 @@ const HiKofuku: React.FC = () => {
   const handleSend = async (text: string = input, skipAudio = false) => {
     if (!text.trim()) return;
 
+    const currentHistory = [...messages];
     const newUserMsg: ChatMessage = {
       id: Date.now().toString(),
       text,
@@ -97,11 +98,11 @@ const HiKofuku: React.FC = () => {
     setInput('');
     setIsThinking(true);
 
-    const responseText = await getKofukuResponse(text);
+    const responseText = await getKofukuResponse(text, currentHistory);
     
     const kofukuMsg: ChatMessage = {
       id: (Date.now() + 1).toString(),
-      text: responseText || "Maaf, saya tidak bisa merespon saat ini.",
+      text: responseText || "Maaf, saya tidak bisa merespon saat ini. Ada hal lain yang ingin Anda ceritakan?",
       sender: 'kofuku',
       timestamp: new Date()
     };
@@ -170,13 +171,13 @@ const HiKofuku: React.FC = () => {
           <h2 className="text-3xl font-bold text-primary font-heading flex items-center gap-2">
             Hi Kofuku <Sparkles className="text-secondary" />
           </h2>
-          <p className="text-mediumGrey">Konsultan Wellness Personalmu (Voice Active)</p>
+          <p className="text-mediumGrey">Konsultasi Interaktif (Voice Active)</p>
         </div>
         <div className="flex gap-2">
           {isPlaying && (
             <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl animate-pulse">
               <Volume2 size={18} />
-              <span className="text-xs font-bold">Kofuku Berbicara...</span>
+              <span className="text-xs font-bold">Kofuku Menjawab...</span>
             </div>
           )}
           <button className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-mediumGrey hover:text-primary transition-all">
@@ -221,7 +222,7 @@ const HiKofuku: React.FC = () => {
             <div className="flex justify-end">
               <div className="bg-primary/20 p-4 rounded-2xl rounded-tr-none flex gap-2 items-center italic text-xs text-primary">
                 <Loader2 size={14} className="animate-spin" />
-                Menerjemahkan suara Anda...
+                Mendengar suara Anda...
               </div>
             </div>
           )}
@@ -237,19 +238,6 @@ const HiKofuku: React.FC = () => {
           )}
         </div>
 
-        {/* Suggested Topics - Horizontal Scroll */}
-        <div className="px-6 py-3 border-t border-gray-50 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar">
-          {["Rekomendasi Makan", "Tips Olahraga", "Kelola Stres", "Cek Kesehatan", "Pola Tidur"].map((topic, idx) => (
-            <button 
-              key={idx}
-              onClick={() => handleSend(topic)}
-              className="whitespace-nowrap px-4 py-2 bg-primary-light text-primary text-xs font-bold rounded-full hover:bg-primary hover:text-white transition-all border border-primary/10"
-            >
-              {topic}
-            </button>
-          ))}
-        </div>
-
         {/* Input Area */}
         <div className="p-6 bg-white border-t border-gray-100">
           <div className="flex items-center gap-4 relative">
@@ -259,7 +247,7 @@ const HiKofuku: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={isListening ? "Mendengarkan..." : "Tanyakan apa saja seputar kesehatanmu..."}
+                placeholder={isListening ? "Mendengarkan suara Anda..." : "Tulis pesan atau tekan mikrofon..."}
                 className="w-full pl-6 pr-14 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-primary text-sm shadow-inner"
                 disabled={isListening}
               />
@@ -285,7 +273,7 @@ const HiKofuku: React.FC = () => {
             </div>
           </div>
           <p className="text-center text-[10px] text-mediumGrey mt-4 font-medium flex items-center justify-center gap-1">
-            <Info size={12} /> Kofuku sekarang bisa mendengar dan berbicara dengan suara dokter konsultan.
+            <Info size={12} /> Kofuku akan memberikan saran singkat dan berdiskusi dua arah dengan Anda.
           </p>
         </div>
       </div>

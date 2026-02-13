@@ -52,12 +52,22 @@ const Landing: React.FC<{ onStart: () => void }> = ({ onStart }) => {
             </div>
           </div>
           <div className="flex-1 relative">
-            <div className="absolute inset-0 bg-secondary/20 rounded-full blur-3xl -z-10 animate-pulse"></div>
-            <img 
-              src="https://picsum.photos/seed/wellness_hero/800/600" 
-              alt="Healthy lifestyle" 
-              className="rounded-2xl shadow-2xl border-8 border-white transform rotate-2 hover:rotate-0 transition-all duration-500"
-            />
+            <div className="absolute inset-0 bg-secondary/20 rounded-full blur-3xl -z-10 animate-breathe"></div>
+            {/* Replaced snow photo with a floating vector-style wellness illustration */}
+            <div className="relative animate-bounce-slow">
+              <img 
+                src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800" 
+                alt="Wellness and Yoga Illustration" 
+                className="rounded-[2.5rem] shadow-2xl border-8 border-white transform hover:scale-105 transition-all duration-700"
+              />
+              {/* Added floating decorative elements to enhance "animation" feel */}
+              <div className="absolute -top-6 -right-6 bg-white p-4 rounded-2xl shadow-xl animate-pulse hidden md:block">
+                <HeartPulse className="text-error" size={32} />
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl animate-pulse delay-700 hidden md:block">
+                <ShieldCheck className="text-success" size={32} />
+              </div>
+            </div>
           </div>
         </div>
       </section>
