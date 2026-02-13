@@ -8,10 +8,13 @@ import {
   MoreVertical,
   ChevronRight,
   Smile,
-  Info
+  Info,
+  Volume2,
+  VolumeX,
+  Loader2
 } from 'lucide-react';
 import { ChatMessage } from '../types';
-import { getKofukuResponse } from '../geminiService';
+import { getKofukuResponse, generateKofukuSpeech, transcribeAudio } from '../geminiService';
 
 const HiKofuku: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -25,15 +28,62 @@ const HiKofuku: React.FC = () => {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isThinking]);
+  }, [messages, isThinking, isTranscribing]);
 
-  const handleSend = async (text: string = input) => {
+  const decodeAudio = async (base64Audio: string) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    }
+    const ctx = audioContextRef.current;
+    
+    const binaryString = atob(base64Audio);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const dataInt16 = new Int16Array(bytes.buffer);
+    const frameCount = dataInt16.length;
+    const buffer = ctx.createBuffer(1, frameCount, 24000);
+    const channelData = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i] / 32768.0;
+    }
+    return buffer;
+  };
+
+  const playResponseAudio = async (text: string) => {
+    setIsPlaying(true);
+    const base64Audio = await generateKofukuSpeech(text);
+    if (base64Audio) {
+      try {
+        const buffer = await decodeAudio(base64Audio);
+        const source = audioContextRef.current!.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContextRef.current!.destination);
+        source.onended = () => setIsPlaying(false);
+        source.start(0);
+      } catch (err) {
+        console.error("Audio playback error", err);
+        setIsPlaying(false);
+      }
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
+  const handleSend = async (text: string = input, skipAudio = false) => {
     if (!text.trim()) return;
 
     const newUserMsg: ChatMessage = {
@@ -58,16 +108,58 @@ const HiKofuku: React.FC = () => {
 
     setIsThinking(false);
     setMessages(prev => [...prev, kofukuMsg]);
+
+    if (!skipAudio && responseText) {
+      playResponseAudio(responseText);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          setIsTranscribing(true);
+          const transcription = await transcribeAudio(base64Audio, 'audio/webm');
+          setIsTranscribing(false);
+          if (transcription) {
+            handleSend(transcription);
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (err) {
+      console.error("Recording error:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsListening(false);
+    }
   };
 
   const toggleListen = () => {
-    setIsListening(!isListening);
-    if (!isListening) {
-      // In a real app, we'd use Web Speech API here
-      setTimeout(() => {
-        setIsListening(false);
-        handleSend("Berikan saya tips mengelola stres kerja");
-      }, 3000);
+    if (isListening) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -78,9 +170,15 @@ const HiKofuku: React.FC = () => {
           <h2 className="text-3xl font-bold text-primary font-heading flex items-center gap-2">
             Hi Kofuku <Sparkles className="text-secondary" />
           </h2>
-          <p className="text-mediumGrey">Konsultan Wellness Personalmu</p>
+          <p className="text-mediumGrey">Konsultan Wellness Personalmu (Voice Active)</p>
         </div>
         <div className="flex gap-2">
+          {isPlaying && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl animate-pulse">
+              <Volume2 size={18} />
+              <span className="text-xs font-bold">Kofuku Berbicara...</span>
+            </div>
+          )}
           <button className="p-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-mediumGrey hover:text-primary transition-all">
             <History size={20} />
           </button>
@@ -98,11 +196,19 @@ const HiKofuku: React.FC = () => {
         >
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
+              <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm relative ${
                 msg.sender === 'user' 
                   ? 'bg-primary text-white rounded-tr-none' 
                   : 'bg-surface text-charcoal border border-secondary/20 rounded-tl-none'
               }`}>
+                {msg.sender === 'kofuku' && (
+                  <button 
+                    onClick={() => playResponseAudio(msg.text)}
+                    className="absolute -right-10 top-2 p-2 text-mediumGrey hover:text-primary"
+                  >
+                    <Volume2 size={16} />
+                  </button>
+                )}
                 <p className="text-sm leading-relaxed">{msg.text}</p>
                 <p className={`text-[10px] mt-2 opacity-60 ${msg.sender === 'user' ? 'text-white' : 'text-mediumGrey'}`}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -111,6 +217,15 @@ const HiKofuku: React.FC = () => {
             </div>
           ))}
           
+          {isTranscribing && (
+            <div className="flex justify-end">
+              <div className="bg-primary/20 p-4 rounded-2xl rounded-tr-none flex gap-2 items-center italic text-xs text-primary">
+                <Loader2 size={14} className="animate-spin" />
+                Menerjemahkan suara Anda...
+              </div>
+            </div>
+          )}
+
           {isThinking && (
             <div className="flex justify-start">
               <div className="bg-surface p-4 rounded-2xl border border-secondary/20 rounded-tl-none flex gap-2 items-center">
@@ -144,8 +259,9 @@ const HiKofuku: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Tanyakan apa saja seputar kesehatanmu..."
+                placeholder={isListening ? "Mendengarkan..." : "Tanyakan apa saja seputar kesehatanmu..."}
                 className="w-full pl-6 pr-14 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-primary text-sm shadow-inner"
+                disabled={isListening}
               />
               <button 
                 onClick={() => handleSend()}
@@ -164,12 +280,12 @@ const HiKofuku: React.FC = () => {
                     : 'bg-secondary text-white shadow-lg hover:scale-105 active:scale-95 animate-pulse-gold'
                 }`}
               >
-                <Mic size={24} />
+                {isListening ? <VolumeX size={24} /> : <Mic size={24} />}
               </button>
             </div>
           </div>
           <p className="text-center text-[10px] text-mediumGrey mt-4 font-medium flex items-center justify-center gap-1">
-            <Info size={12} /> Konsultasi ini di-backup oleh AI Wellness Kofuku. Tetap konsultasikan ke medis jika diperlukan.
+            <Info size={12} /> Kofuku sekarang bisa mendengar dan berbicara dengan suara dokter konsultan.
           </p>
         </div>
       </div>
